@@ -21,6 +21,7 @@ class promise
 
         void set(const T &);
         void set(const T  &&);
+        void set_exception(const std::exception_ptr &);
         future<T> get_future();
 
 
@@ -36,6 +37,9 @@ void promise<T>::set(const T  & arg){
     if (_state->set_flag){
         throw std::runtime_error("Tries to set value again");
     }
+    if (_state->ex_flag){
+        throw std::runtime_error("Exception value already set");
+    }
     {
         std::unique_lock<std::mutex> locker(_state->mut);
         _state->value = arg;
@@ -50,9 +54,29 @@ void promise<T>::set(const T && arg){
 }
 
 template<typename T>
+void promise<T>::set_exception(const std::exception_ptr & e){
+    if (_state->ex_flag){
+        throw std::runtime_error("Tries to set exception again");
+    }
+    if (_state->set_flag){
+        throw std::runtime_error("Value already set");
+    }
+    {
+        std::unique_lock<std::mutex> locker(_state->mut);
+        _state->ex = e;
+    }
+    _state->ex_flag = true;
+    _state->cv.notify_one();
+
+}
+
+template<typename T>
 future<T> promise<T>::get_future(){
     if (_get_flag){
         throw std::runtime_error("Tries to get future again");
+    }
+    if (!_state){
+        throw std::runtime_error{"Promise not valid"};
     }
     return future<T>(_state);
     _get_flag = true;
@@ -82,6 +106,7 @@ class promise<void>
         promise& operator=(promise &&) = default;
 
         void set();
+        void set_exception(const std::exception_ptr &);
         future<void> get_future();
 
 
@@ -94,11 +119,33 @@ class promise<void>
 
 
 void promise<void>::set(){
+    if (_state->set_flag){
+        throw std::runtime_error("Tries to set value again");
+    }
+     if (_state->ex_flag){
+        throw std::runtime_error("Exception value already set");
+    }
     _state->set_flag = true;
     _state->cv.notify_one();
 }
 
 
+void promise<void>::set_exception(const std::exception_ptr & e){
+    if (_state->ex_flag){
+        throw std::runtime_error("Tries to set exception again");
+    }
+    if (_state->set_flag){
+        throw std::runtime_error("Value already set");
+    }
+
+    {
+        std::unique_lock<std::mutex> locker(_state->mut);
+        _state->ex = e;
+    }
+    _state->ex_flag = true;
+    _state->cv.notify_one();
+
+}
 
 future<void> promise<void>::get_future(){
     if (_get_flag){

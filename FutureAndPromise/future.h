@@ -36,6 +36,9 @@ class future
 template<typename T>
 T future<T>::get() const{
     wait();
+    if (_state->ex_flag){
+        throw _state->ex;
+    }
     return _state->value;
 }
 
@@ -47,9 +50,10 @@ void future<void>::get() const {
 template<typename T>
 void future<T>::wait() const{
     if (!_state)
-        throw std::runtime_error("future invalidated");
-    if(_state->set_flag)
+        throw std::runtime_error("future not valid");
+    if(_state->set_flag||_state->ex_flag)
         return;
+
     std::unique_lock<std::mutex> locker(_state->mut);
     _state->cv.wait(locker);
 }

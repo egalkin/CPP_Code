@@ -13,6 +13,8 @@ class shared_state
         std::mutex mut;
         std::condition_variable cv;
         std::atomic_bool set_flag;
+        std::atomic_bool ex_flag;
+        std::exception_ptr ex;
 };
 
 
@@ -26,6 +28,8 @@ class shared_state<void>{
         std::mutex mut;
         std::condition_variable cv;
         std::atomic_bool set_flag;
+        std::atomic_bool ex_flag;
+        std::exception_ptr ex;
 };
 
 
