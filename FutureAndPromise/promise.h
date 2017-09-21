@@ -50,7 +50,18 @@ void promise<T>::set(const T  & arg){
 
 template<typename T>
 void promise<T>::set(const T && arg){
-    set(arg);
+    if (_state->set_flag){
+        throw std::runtime_error("Tries to set value again");
+    }
+    if (_state->ex_flag){
+        throw std::runtime_error("Exception value already set");
+    }
+    {
+        std::unique_lock<std::mutex> locker(_state->mut);
+        _state->value = std::move(arg);
+    }
+    _state->set_flag = true;
+    _state->cv.notify_one();
 }
 
 template<typename T>
@@ -78,8 +89,9 @@ future<T> promise<T>::get_future(){
     if (!_state){
         throw std::runtime_error{"Promise not valid"};
     }
-    return future<T>(_state);
     _get_flag = true;
+    return future<T>(_state);
+
 }
 
 
@@ -93,14 +105,15 @@ template<>
 class promise<void>
 {
     public:
-        promise() :
-        _state {new shared_state<void>()},
-        _get_flag {false}
+        promise()
+            : _state {new shared_state<void>()}
+            , _get_flag {false}
         {};
-        virtual ~promise();
+
+        ~promise();
 
         promise(const promise &) = delete;
-        promise& operator=(promise &) = delete;
+        promise& operator=(promise const &) = delete;
 
         promise(promise&&) = default;
         promise& operator=(promise &&) = default;
@@ -151,8 +164,8 @@ future<void> promise<void>::get_future(){
     if (_get_flag){
         throw std::runtime_error("Tries to get future again");
     }
-    return future<void>(_state);
     _get_flag = true;
+    return future<void>(_state);
 }
 
 
