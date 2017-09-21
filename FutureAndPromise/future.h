@@ -25,13 +25,12 @@ class future
     protected:
 
     private:
-        friend class promise<T>;
-        future(std::shared_ptr<shared_state<T>> state) : _state{state} {};
+        explicit future(std::shared_ptr<shared_state<T>> state) : _state{state} {};
+
+    private:
+        friend class  promise<T>;
         std::shared_ptr<shared_state<T>> _state;
 };
-
-
-
 
 template<typename T>
 T future<T>::get() const{
@@ -45,13 +44,16 @@ T future<T>::get() const{
 template<>
 void future<void>::get() const {
     wait();
+    if (_state->ex_flag){
+        throw _state->ex;
+    }
 }
 
 template<typename T>
 void future<T>::wait() const{
     if (!_state)
         throw std::runtime_error("future not valid");
-    if(_state->set_flag||_state->ex_flag)
+    if(_state->set_flag || _state->ex_flag)
         return;
 
     std::unique_lock<std::mutex> locker(_state->mut);
