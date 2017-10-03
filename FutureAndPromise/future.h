@@ -6,7 +6,6 @@ template <typename T>
 class promise;
 
 
-
 template <typename T>
 class future
 {
@@ -17,7 +16,7 @@ class future
         future(future &&) = default;
         future& operator=(future &&) = default;
 
-        virtual ~future();
+        ~future() = default;
         T get() const;
         void wait() const;
         bool is_ready() const;
@@ -66,10 +65,57 @@ bool future<T>::is_ready() const{
     return _state->set_flag;
 }
 
-template<typename T>
-future<T>::~future()
+template <typename T>
+class future<T&>
 {
-    //dtor
+    public:
+        future(const future &) = delete;
+        future& operator=(future &) = delete;
+
+        future(future &&) = default;
+        future& operator=(future &&) = default;
+
+        ~future() = default;
+        std::reference_wrapper<T> get() const;
+        void wait() const;
+        bool is_ready() const;
+
+    protected:
+
+    private:
+        explicit future(std::shared_ptr<shared_state<T&>> state) : _state{state} {};
+
+    private:
+        friend class  promise<T&>;
+        std::shared_ptr<shared_state<T&>> _state;
+};
+
+template<typename T>
+std::reference_wrapper<T> future<T&>::get() const{
+    wait();
+    if (_state->ex_flag){
+        throw _state->ex;
+    }
+    return _state->value;
 }
+
+
+template<typename T>
+void future<T&>::wait() const{
+    if (!_state)
+        throw std::runtime_error("future not valid");
+    if(_state->set_flag || _state->ex_flag)
+        return;
+
+    std::unique_lock<std::mutex> locker(_state->mut);
+    _state->cv.wait(locker);
+}
+
+
+template<typename T>
+bool future<T&>::is_ready() const{
+    return _state->set_flag;
+}
+
 
 #endif // FUTURE_H

@@ -3,6 +3,7 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <functional>
 
 template <typename T>
 class shared_state
@@ -17,7 +18,18 @@ class shared_state
         std::exception_ptr ex;
 };
 
-
+template <typename T>
+class shared_state<T&>{
+    public:
+        shared_state() = default;
+        T a = T();
+        T& value = a ;
+        std::mutex mut;
+        std::condition_variable cv;
+        std::atomic_bool set_flag;
+        std::atomic_bool ex_flag;
+        std::exception_ptr ex;
+};
 
 
 
