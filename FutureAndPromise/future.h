@@ -3,36 +3,34 @@
 #include "shared_state.h"
 
 template <typename T>
-class promise;
+class Fromise;
 
 
 template <typename T>
-class future
+class Future
 {
     public:
-        future(const future &) = delete;
-        future& operator=(future &) = delete;
+        Future(const Future &) = delete;
+        Future& operator=(Future &) = delete;
 
-        future(future &&) = default;
-        future& operator=(future &&) = default;
+        Future(Future &&) = default;
+        Future& operator=(Future &&) = default;
 
-        ~future() = default;
-        T get() const;
+        ~Future() = default;
+        T Get() const;
         void wait() const;
-        bool is_ready() const;
-
-    protected:
+        bool IsReady() const;
 
     private:
-        explicit future(std::shared_ptr<shared_state<T>> state) : _state{state} {};
+        explicit Future(std::shared_ptr<shared_state<T>> state) : _state{state} {};
 
     private:
-        friend class  promise<T>;
+        friend class  Promise<T>;
         std::shared_ptr<shared_state<T>> _state;
 };
 
 template<typename T>
-T future<T>::get() const{
+T Future<T>::Get() const{
     wait();
     if (_state->ex_flag){
         throw _state->ex;
@@ -41,7 +39,7 @@ T future<T>::get() const{
 }
 
 template<>
-void future<void>::get() const {
+void Future<void>::Get() const {
     wait();
     if (_state->ex_flag){
         throw _state->ex;
@@ -49,7 +47,7 @@ void future<void>::get() const {
 }
 
 template<typename T>
-void future<T>::wait() const{
+void Future<T>::wait() const{
     if (!_state)
         throw std::runtime_error("future not valid");
     if(_state->set_flag || _state->ex_flag)
@@ -61,37 +59,36 @@ void future<T>::wait() const{
 
 
 template<typename T>
-bool future<T>::is_ready() const{
+bool Future<T>::IsReady() const{
     return _state->set_flag;
 }
 
 template <typename T>
-class future<T&>
+class Future<T&>
 {
     public:
-        future(const future &) = delete;
-        future& operator=(future &) = delete;
+        Future(const Future &) = delete;
+        Future& operator=(Future &) = delete;
 
-        future(future &&) = default;
-        future& operator=(future &&) = default;
+        Future(Future &&) = default;
+        Future& operator=(Future &&) = default;
 
-        ~future() = default;
-        std::reference_wrapper<T> get() const;
+        ~Future() = default;
+        T& Get() const;
         void wait() const;
-        bool is_ready() const;
+        bool IsReady() const;
 
-    protected:
-
-    private:
-        explicit future(std::shared_ptr<shared_state<T&>> state) : _state{state} {};
 
     private:
-        friend class  promise<T&>;
+        explicit Future(std::shared_ptr<shared_state<T&>> state) : _state{state} {};
+
+    private:
+        friend class  Promise<T&>;
         std::shared_ptr<shared_state<T&>> _state;
 };
 
 template<typename T>
-std::reference_wrapper<T> future<T&>::get() const{
+T& Future<T&>::Get() const{
     wait();
     if (_state->ex_flag){
         throw _state->ex;
@@ -101,7 +98,7 @@ std::reference_wrapper<T> future<T&>::get() const{
 
 
 template<typename T>
-void future<T&>::wait() const{
+void Future<T&>::wait() const{
     if (!_state)
         throw std::runtime_error("future not valid");
     if(_state->set_flag || _state->ex_flag)
@@ -113,7 +110,7 @@ void future<T&>::wait() const{
 
 
 template<typename T>
-bool future<T&>::is_ready() const{
+bool Future<T&>::IsReady() const{
     return _state->set_flag;
 }
 

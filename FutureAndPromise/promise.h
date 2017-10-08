@@ -4,25 +4,25 @@
 #include "future.h"
 
 template<typename T>
-class promise
+class Promise
 {
     public:
-        promise() :
+    Promise() :
         _state {new shared_state<T>()},
         _get_flag {false}
         {};
-        ~promise() = default;
+        ~Promise() = default;
 
-        promise(const promise &) = delete;
-        promise& operator=(promise &) = delete;
+        Promise(const Promise &) = delete;
+        Promise& operator=(Promise &) = delete;
 
-        promise(promise&&) = default;
-        promise& operator=(promise &&) = default;
+        Promise(Promise&&) = default;
+        Promise& operator=(Promise &&) = default;
 
-        void set(const T &);
-        void set(const T  &&);
+        void Set(const T &);
+        void Set(const T  &&);
         void set_exception(const std::exception_ptr &);
-        future<T> get_future();
+        Future<T> GetFuture();
 
 
 
@@ -33,7 +33,7 @@ class promise
 
 
 template<typename T>
-void promise<T>::set(const T  & arg){
+void Promise<T>::Set(const T  & arg){
     if (_state->set_flag){
         throw std::runtime_error("Tries to set value again");
     }
@@ -49,7 +49,7 @@ void promise<T>::set(const T  & arg){
 }
 
 template<typename T>
-void promise<T>::set(const T && arg){
+void Promise<T>::Set(const T && arg){
     if (_state->set_flag){
         throw std::runtime_error("Tries to set value again");
     }
@@ -65,7 +65,7 @@ void promise<T>::set(const T && arg){
 }
 
 template<typename T>
-void promise<T>::set_exception(const std::exception_ptr & e){
+void Promise<T>::set_exception(const std::exception_ptr & e){
     if (_state->ex_flag){
         throw std::runtime_error("Tries to set exception again");
     }
@@ -82,7 +82,7 @@ void promise<T>::set_exception(const std::exception_ptr & e){
 }
 
 template<typename T>
-future<T> promise<T>::get_future(){
+Future<T> Promise<T>::GetFuture(){
     if (_get_flag){
         throw std::runtime_error("Tries to get future again");
     }
@@ -90,7 +90,7 @@ future<T> promise<T>::get_future(){
         throw std::runtime_error{"Promise not valid"};
     }
     _get_flag = true;
-    return future<T>(_state);
+    return Future<T>(_state);
 
 }
 
@@ -99,25 +99,25 @@ future<T> promise<T>::get_future(){
 
 
 template<typename T>
-class promise<T&>
+class Promise<T&>
 {
     public:
-        promise() :
+    Promise() :
         _state {new shared_state<T&>()},
         _get_flag {false}
         {};
-        ~promise() = default;
+        ~Promise() = default;
 
-        promise(const promise &) = delete;
-        promise& operator=(promise &) = delete;
+        Promise(const Promise &) = delete;
+        Promise& operator=(Promise &) = delete;
 
-        promise(promise&&) = default;
-        promise& operator=(promise &&) = default;
+        Promise(Promise&&) = default;
+        Promise& operator=(Promise &&) = default;
 
-        void set(const T &);
-        void set(const T  &&);
+        void Set(const T &);
+        void Set(const T  &&);
         void set_exception(const std::exception_ptr &);
-        future<T&> get_future();
+        Future<T&> GetFuture();
 
 
 
@@ -128,7 +128,7 @@ class promise<T&>
 
 
 template<typename T>
-void promise<T&>::set(const T  & arg){
+void Promise<T&>::Set(const T  & arg){
     if (_state->set_flag){
         throw std::runtime_error("Tries to set value again");
     }
@@ -144,12 +144,23 @@ void promise<T&>::set(const T  & arg){
 }
 
 template<typename T>
-void promise<T&>::set(const T && arg){
-    set(arg);
+void Promise<T&>::Set(const T && arg){
+    if (_state->set_flag){
+        throw std::runtime_error("Tries to set value again");
+    }
+    if (_state->ex_flag){
+        throw std::runtime_error("Exception value already set");
+    }
+    {
+        std::unique_lock<std::mutex> locker(_state->mut);
+        _state->value = std::move(arg);
+    }
+    _state->set_flag = true;
+    _state->cv.notify_one();
 }
 
 template<typename T>
-void promise<T&>::set_exception(const std::exception_ptr & e){
+void Promise<T&>::set_exception(const std::exception_ptr & e){
     if (_state->ex_flag){
         throw std::runtime_error("Tries to set exception again");
     }
@@ -166,7 +177,7 @@ void promise<T&>::set_exception(const std::exception_ptr & e){
 }
 
 template<typename T>
-future<T&> promise<T&>::get_future(){
+Future<T&> Promise<T&>::GetFuture(){
     if (_get_flag){
         throw std::runtime_error("Tries to get future again");
     }
@@ -174,7 +185,7 @@ future<T&> promise<T&>::get_future(){
         throw std::runtime_error{"Promise not valid"};
     }
     _get_flag = true;
-    return future<T&>(_state);
+    return Future<T&>(_state);
 
 }
 
@@ -183,25 +194,25 @@ future<T&> promise<T&>::get_future(){
 
 
 template<>
-class promise<void>
+class Promise<void>
 {
     public:
-        promise()
+    Promise()
             : _state {new shared_state<void>()}
             , _get_flag {false}
         {};
 
-        ~promise() = default;
+        ~Promise() = default;
 
-        promise(const promise &) = delete;
-        promise& operator=(promise const &) = delete;
+        Promise(const Promise &) = delete;
+        Promise& operator=(Promise const &) = delete;
 
-        promise(promise&&) = default;
-        promise& operator=(promise &&) = default;
+        Promise(Promise&&) = default;
+        Promise& operator=(Promise &&) = default;
 
-        void set();
+        void Set();
         void set_exception(const std::exception_ptr &);
-        future<void> get_future();
+        Future<void> GetFuture();
 
 
 
@@ -212,7 +223,7 @@ class promise<void>
 
 
 
-void promise<void>::set(){
+void Promise<void>::Set(){
     if (_state->set_flag){
         throw std::runtime_error("Tries to set value again");
     }
@@ -224,7 +235,7 @@ void promise<void>::set(){
 }
 
 
-void promise<void>::set_exception(const std::exception_ptr & e){
+void Promise<void>::set_exception(const std::exception_ptr & e){
     if (_state->ex_flag){
         throw std::runtime_error("Tries to set exception again");
     }
@@ -241,12 +252,12 @@ void promise<void>::set_exception(const std::exception_ptr & e){
 
 }
 
-future<void> promise<void>::get_future(){
+Future<void> Promise<void>::GetFuture(){
     if (_get_flag){
         throw std::runtime_error("Tries to get future again");
     }
     _get_flag = true;
-    return future<void>(_state);
+    return Future<void>(_state);
 }
 
 
