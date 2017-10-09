@@ -3,7 +3,7 @@
 #include "shared_state.h"
 
 template <typename T>
-class Fromise;
+class Promise;
 
 
 template <typename T>
@@ -11,7 +11,7 @@ class Future
 {
     public:
         Future(const Future &) = delete;
-        Future& operator=(Future &) = delete;
+        Future& operator=(const Future &) = delete;
 
         Future(Future &&) = default;
         Future& operator=(Future &&) = default;

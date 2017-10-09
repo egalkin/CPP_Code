@@ -14,7 +14,7 @@ class Promise
         ~Promise() = default;
 
         Promise(const Promise &) = delete;
-        Promise& operator=(Promise &) = delete;
+        Promise& operator=(const Promise &) = delete;
 
         Promise(Promise&&) = default;
         Promise& operator=(Promise &&) = default;
