@@ -23,7 +23,7 @@ class shared_state<T&>{
     public:
         shared_state() = default;
         T a;
-        T& value = a ;
+        T& value = a;
         std::mutex mut;
         std::condition_variable cv;
         std::atomic_bool set_flag;

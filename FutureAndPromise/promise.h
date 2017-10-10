@@ -16,8 +16,14 @@ class Promise
         Promise(const Promise &) = delete;
         Promise& operator=(const Promise &) = delete;
 
-        Promise(Promise&&) = default;
-        Promise& operator=(Promise &&) = default;
+        Promise(Promise && that) noexcept
+            : _state(that._state)
+        { }
+
+        Promise & operator= (Promise && that) noexcept {
+            *this = std::move(that);
+            return *this;
+        }
 
         void Set(const T &);
         void Set(const T  &&);
@@ -111,8 +117,14 @@ class Promise<T&>
         Promise(const Promise &) = delete;
         Promise& operator=(Promise &) = delete;
 
-        Promise(Promise&&) = default;
-        Promise& operator=(Promise &&) = default;
+        Promise(Promise && that) noexcept
+            : _state(that._state)
+        { }
+
+        Promise & operator= (Promise && that) noexcept {
+            *this = std::move(that);
+            return *this;
+        }
 
         void Set(const T &);
         void Set(const T  &&);
@@ -137,7 +149,7 @@ void Promise<T&>::Set(const T  & arg){
     }
     {
         std::unique_lock<std::mutex> locker(_state->mut);
-        _state->value = arg;
+        _state->value =  arg;
     }
     _state->set_flag = true;
     _state->cv.notify_one();
@@ -207,8 +219,14 @@ class Promise<void>
         Promise(const Promise &) = delete;
         Promise& operator=(Promise const &) = delete;
 
-        Promise(Promise&&) = default;
-        Promise& operator=(Promise &&) = default;
+        Promise(Promise && that) noexcept
+            : _state(that._state)
+        { }
+
+        Promise & operator= (Promise && that) noexcept {
+            *this = std::move(that);
+            return *this;
+        }
 
         void Set();
         void set_exception(const std::exception_ptr &);

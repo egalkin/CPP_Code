@@ -13,8 +13,14 @@ class Future
         Future(const Future &) = delete;
         Future& operator=(const Future &) = delete;
 
-        Future(Future &&) = default;
-        Future& operator=(Future &&) = default;
+        Future(Future && that) noexcept
+            : _state(that._state)
+        { }
+
+        Future & operator=(Future && that) noexcept {
+            *this = std::move(that);
+            return *this;
+        }
 
         ~Future() = default;
         T Get() const;
@@ -70,8 +76,15 @@ class Future<T&>
         Future(const Future &) = delete;
         Future& operator=(Future &) = delete;
 
-        Future(Future &&) = default;
-        Future& operator=(Future &&) = default;
+
+        Future(Future && that) noexcept
+            : _state(that._state)
+        { }
+
+        Future & operator=(Future && that) noexcept {
+            *this = std::move(that);
+            return *this;
+        }
 
         ~Future() = default;
         T& Get() const;
